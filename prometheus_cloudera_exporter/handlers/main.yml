@@ -1,0 +1,7 @@
+---
+
+- name: restart prometheus-cloudera-exporter
+  systemd:
+    name: "prometheus-cloudera-exporter"
+    daemon_reload: true
+    state: restarted

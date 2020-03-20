@@ -1,0 +1,39 @@
+---
+
+- name: Converge
+  hosts: all
+  become: true
+  become_flags: -E
+  vars:
+    project: demo
+    env: development
+    cloudera_role: datanode
+    prometheus_jmx_remote_src: false
+
+  pre_tasks:
+    - name: Load defaults
+      include_vars:
+        dir: ../../../../group_vars/all/
+        ignore_unknown_extensions: true
+
+    - name: Unset proxy
+      set_fact:
+        outbound_proxy_host:
+        outbound_proxy_port:
+        outbound_proxy:
+
+    - name: Install python pre-reqs for ansible
+      pip:
+        name:
+          - boto3
+          - botocore
+          - awscli
+        state: present
+
+    - name: Install java
+      apt:
+        name: default-jdk
+        state: present
+
+  roles:
+    - { role: prometheus_jmx_exporter }

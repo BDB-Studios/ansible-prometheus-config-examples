@@ -1,0 +1,60 @@
+---
+
+- name: Create our cloudera exporter directory
+  file:
+    state: directory
+    path: "{{ prometheus_exporters_common_dist_dir }}/cloudera_exporter"
+
+- name: Download our package from s3
+  aws_s3:
+    bucket: "{{ prometheus_artifact_bucket }}"
+    object: "/prometheus/cloudera_exporter"
+    dest: "{{ prometheus_exporters_common_dist_dir }}/cloudera_exporter/cloudera_exporter"
+    mode: get
+    overwrite: different
+
+- name: update group and owner for files
+  file:
+    path: "{{ prometheus_exporters_common_dist_dir }}"
+    state: directory
+    recurse: yes
+    owner: "{{ prometheus_exporters_common_user }}"
+    group: "{{ prometheus_exporters_common_group }}"
+  changed_when: false
+
+- name: Set our executable bit
+  file:
+    path: "{{ prometheus_exporters_common_dist_dir }}/cloudera_exporter/cloudera_exporter"
+    mode: a+x
+
+- name: create symlink to the current release
+  file:
+    src: "{{ prometheus_exporters_common_dist_dir }}/cloudera_exporter"
+    path: "{{ prometheus_exporters_common_root_dir }}/cloudera_exporter_current"
+    state: link
+
+- name: Create our config file
+  template:
+    src: "{{ role_path }}/templates/config.ini.j2"
+    dest: "{{ prometheus_exporters_common_dist_dir }}/cloudera_exporter/config.ini"
+    owner: "{{ prometheus_exporters_common_user }}"
+    group: "{{ prometheus_exporters_common_group }}"
+    mode: '0644'
+    remote_src: "{{ prometheus_cloudera_remote_src | default(true) }}"
+
+- name: configure the service config
+  template:
+    src: prometheus-cloudera-exporter.service.j2
+    dest: /etc/systemd/system/prometheus-cloudera-exporter.service
+    owner: root
+    group: root
+    mode: 0644
+    remote_src: "{{ prometheus_cloudera_remote_src | default(true) }}"
+
+- meta: flush_handlers
+
+- name: configure the service
+  systemd:
+    name: "prometheus-cloudera-exporter"
+    enabled: true
+    state: started

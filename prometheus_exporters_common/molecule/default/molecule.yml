@@ -1,0 +1,48 @@
+---
+
+ansible:
+  config_file: ${PROJECT_ROOT}/ansible.cfg
+
+dependency:
+  name: galaxy
+
+driver:
+  name: docker
+
+lint:
+  name: yamllint
+
+platforms:
+  - name: prometheus_exporters_common_xenial
+    image: ubuntu:16.04
+  - name: prometheus_exports_common_centos7
+    image: centos:7
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_LIBRARY: ${PROJECT_ROOT}/library/
+    ANSIBLE_FILTER_PLUGINS: ${PROJECT_ROOT}/filter_plugins/
+  lint:
+    name: ansible-lint
+
+scenario:
+  name: default
+  test_sequence:
+    - lint
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+
+verifier:
+  name: testinfra
+  lint:
+    name: flake8

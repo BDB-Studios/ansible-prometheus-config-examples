@@ -1,0 +1,4 @@
+---
+
+dependencies:
+  - role: prometheus_exporters_common

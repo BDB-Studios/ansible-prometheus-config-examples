@@ -1,0 +1,50 @@
+---
+
+- name: Download our package
+  aws_s3:
+    bucket: "{{ prometheus_artifact_bucket }}"
+    object: "/tgz/graphite_exporter-{{ prometheus_graphite_exporter_release_name }}.tar.gz"
+    dest: "{{ prometheus_exporters_common_dist_dir }}/{{ prometheus_graphite_exporter_release_name }}.tar.gz"
+    mode: get
+    overwrite: different
+
+- name: Untar our archive
+  unarchive:
+    src: "{{ prometheus_exporters_common_dist_dir }}/{{ prometheus_graphite_exporter_release_name }}.tar.gz"
+    dest: "{{ prometheus_exporters_common_dist_dir }}"
+    creates: "{{ prometheus_exporters_common_dist_dir }}/graphite_exporter-{{ prometheus_graphite_exporter_release_name }}/graphite_exporter"
+    remote_src: "{{ prometheus_graphite_exporter_remote_src | default(false) }}"
+
+- name: update group and owner for files
+  file:
+    path: "{{ prometheus_exporters_common_dist_dir }}/graphite_exporter-{{ prometheus_graphite_exporter_release_name }}"
+    state: directory
+    recurse: yes
+    owner: "{{ prometheus_exporters_common_user }}"
+    group: "{{ prometheus_exporters_common_group }}"
+  changed_when: false
+
+- name: create symlink to the current release
+  file:
+    src: "{{ prometheus_exporters_common_dist_dir }}/graphite_exporter-{{ prometheus_graphite_exporter_release_name }}"
+    path: "{{ prometheus_exporters_common_root_dir }}/graphite_exporter_current"
+    state: link
+
+- name: Create systemd service unit
+  template:
+    src: prometheus-graphite-exporter.service.j2
+    dest: /etc/systemd/system/prometheus-graphite-exporter.service
+    owner: root
+    group: root
+    mode: 0644
+  when: service_mgr | default(ansible_service_mgr) == 'systemd'
+  notify:
+    - reenable graphite exporter service
+    - restart graphite exporter
+
+- meta: flush_handlers
+
+- name: Start the prometheus-graphite-exporter service
+  service:
+    name: prometheus-graphite-exporter
+    state: started

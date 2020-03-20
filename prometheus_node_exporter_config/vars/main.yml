@@ -1,0 +1,6 @@
+---
+
+# Customizations
+prometheus_exporters_textfile_collector_dir: "{{ prometheus_exporters_common_conf_dir }}/textfile_collector"
+prometheus_machine_roles:
+  - monitored

@@ -1,0 +1,24 @@
+# Path where HDFS NameNode stores the fsimage files
+# See https://hadoop.apache.org/docs/r2.7.3/hadoop-project-dist/hadoop-hdfs/hdfs-default.xml#dfs.namenode.name.dir
+fsImagePath : '{{ prometheus_fsimage_path }}'
+
+# Skip file size distribution for group based stats
+skipFileDistributionForGroupStats : true
+# Skip file size distribution for user based stats
+# Good for figuring out who has too many small files.
+skipFileDistributionForUserStats : false
+
+# Compute per path stats
+# Supports regex matching for direct child directories
+paths:
+{{ prometheus_fsimage_paths | default([]) }}
+# Skip file size distribution for path based stats
+skipFileDistributionForPathStats : {{ prometheus_fsimage_skip_path_stats | default(false) }}
+
+# Path sets are grouped paths by an identifier
+# Skip file size distribution for path sets based stats
+#pathSets: []
+
+skipFileDistributionForPathSetStats : true
+# Configure file size distribution buckets, supporting IEC units of KiB, MiB, GiB, TiB, PiB
+fileSizeDistributionBuckets: ['0','1MiB', '32MiB', '64MiB', '128MiB', '1GiB', '10GiB']

@@ -1,0 +1,12 @@
+---
+
+tests:
+  role: prometheus_fsimage_exporter
+  passing: True
+  coverage: Yes
+  docker: True
+  idempontent: True
+  dependancies: ~
+  comments: ~
+  os:
+    - "ubuntu:16.04"

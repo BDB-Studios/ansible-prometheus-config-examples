@@ -1,0 +1,13 @@
+---
+
+tests:
+  role: prometheus_process_exporter
+  passing: true
+  coverage: true
+  docker: true
+  idempontent: true
+  dependancies: ~
+  comments: ~
+  os:
+    - "centos:7"
+    - "ubuntu:16.04"

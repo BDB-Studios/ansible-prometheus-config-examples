@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+
+java -dsa -server -XX:+UseG1GC \
+{% if outbound_proxy_host is defined %}
+  -Dhttp.proxyHost={{ outbound_proxy_host }} -Dhttp.proxyPort={{ outbound_proxy_port }} \
+  -Dhttps.proxyHost={{ outbound_proxy_host }} -Dhttps.proxyPort={{ outbound_proxy_port }} \
+{% endif %}
+  -jar {{ prometheus_exporters_common_root_dir }}/cloudwatch_exporter_current \
+  {{ prometheus_cloudwatch_exporter_port }} \
+  {{ prometheus_exporters_common_root_dir }}/dist/cloudwatch_exporter/config.yml

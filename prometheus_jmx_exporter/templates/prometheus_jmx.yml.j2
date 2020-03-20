@@ -1,0 +1,121 @@
+---
+
+hostPort: localhost:{{ jmx_remote_port | default(5555) }}
+username: 
+password:
+startDelaySeconds: 0
+
+{% if prometheus_jmx.host is defined -%}
+hostPort: {{ prometheus_jmx.host }}
+{% endif -%}
+
+{% if prometheus_jmx.username is defined  -%}
+username: {{ prometheus_jmx.username }}
+{% endif -%}
+
+{% if prometheus_jmx.password is defined  -%}
+password: {{ prometheus_jmx.password }}
+{% endif -%}
+
+ssl: false
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+
+{% if prometheus_jmx.whitelist is defined and prometheus_jmx.whitelist[cloudera_role] is defined  -%}
+whitelistObjectNames:
+{% for wl_obj in prometheus_jmx.whitelist[cloudera_role] %}
+  - "{{ wl_obj }}"
+{% endfor -%}
+{% endif -%}
+
+{% if prometheus_jmx.blacklist is defined and prometheus_jmx.blacklist[cloudera_role] is defined -%}
+blacklistObjectNames:
+{% for bl_obj in prometheus_jmx.blacklist[cloudera_role] %}
+  - "{{ bl_obj }}"
+{% endfor -%}
+{% endif -%}
+
+rules:
+{% if cloudera_role is defined and 'namenode' in cloudera_role %}
+  # https://github.com/fahlke/jmx_exporter-cloudera-hadoop/blob/master/configuration/cdh-hdfs-namenode.yaml
+  - pattern: 'Hadoop<service=(.*), name=MetricsSystem, sub=(.*)><>(.*): (\d+)'
+    attrNameSnakeCase: true
+    name: hadoop_$1_$3
+    value: $4
+    labels:
+      service: HDFS
+      role: $1
+      kind: 'MetricsSystem'
+      sub: $2
+    type: GAUGE
+  # All NameNode infos
+  - pattern: 'Hadoop<service=(.*), name=(.*)><>(.*): (\d+)'
+    attrNameSnakeCase: true
+    name: hadoop_$1_$3
+    value: $4
+    labels:
+      service: HDFS
+      role: $1
+      kind: $2
+    type: GAUGE
+
+{% elif cloudera_role is defined and 'datanode' in cloudera_role %}
+  # https://github.com/fahlke/jmx_exporter-cloudera-hadoop/blob/master/configuration/cdh-hdfs-datanode.yaml
+  - pattern: 'Hadoop<service=(.*), name=MetricsSystem, sub=(.*)><>(.*): (\d+)'
+    attrNameSnakeCase: true
+    name: hadoop_$1_$3
+    value: $4
+    labels:
+      service: HDFS
+      role: $1
+      kind: 'MetricsSystem'
+      sub: $2
+    type: GAUGE
+  # FSDatasetState (also extracts the FSDataset ID)
+  - pattern: 'Hadoop<service=(.*), name=FSDatasetState-(.*)><>(.*): (\d+)'
+    attrNameSnakeCase: true
+    name: hadoop_$1_$3
+    value: $4
+    labels:
+      service: HDFS
+      role: $1
+      fsdatasetid: $2
+      kind: 'FSDatasetState'
+    type: GAUGE
+  # DataNodeActivity (also extracts hostname and port)
+  - pattern: 'Hadoop<service=(.*), name=DataNodeActivity-(.*)-(\d+)><>(.*): (\d+)'
+    attrNameSnakeCase: true
+    name: hadoop_$1_$4
+    value: $5
+    labels:
+      service: HDFS
+      role: $1
+      host: $2
+      port: $3
+      kind: 'DataNodeActivity'
+    type: GAUGE
+  # All other services
+  - pattern: 'Hadoop<service=(.*), name=(.*)><>(.*): (\d+)'
+    attrNameSnakeCase: true
+    name: hadoop_$1_$3
+    value: $4
+    labels:
+      service: HDFS
+      role: $1
+      kind: $2
+    type: GAUGE
+{% else %}
+  - pattern: ".*"
+{% endif %}
+
+{% if prometheus_jmx.rules is defined and prometheus_jmx.rules[cloudera_role] is defined -%}
+{% for rule in prometheus_jmx.rules[cloudera_role] %}
+  - pattern: '{{ rule.pattern }}'
+    name: {{ rule.name }}_$1_$2
+    value: $3
+    valueFactor: 0.001
+    help: "{{ rule.name }} metric $1 $2"
+    type: {{ rule.type | default('untyped') | upper }}
+{% endfor -%}
+{% endif %}
+

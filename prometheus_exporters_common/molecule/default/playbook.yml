@@ -1,0 +1,9 @@
+---
+
+- name: Converge
+  hosts: all
+  become: true
+  become_flags: -E
+
+  roles:
+    - { role: prometheus_exporters_common }

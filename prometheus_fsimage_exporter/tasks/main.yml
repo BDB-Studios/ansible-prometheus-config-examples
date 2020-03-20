@@ -1,0 +1,59 @@
+---
+
+- name: Create our directory
+  file:
+    state: directory
+    path: "{{ prometheus_exporters_common_dist_dir }}/fsimage_exporter"
+
+- name: Download our package
+  aws_s3:
+    bucket: "{{ prometheus_artifact_bucket }}"
+    object: "/jar/fsimage-exporter-1.2.jar"
+    dest: "{{ prometheus_exporters_common_dist_dir }}/fsimage_exporter/fsimage-exporter-1.2.jar"
+    mode: get
+    overwrite: different
+
+- name: Create our config file
+  template:
+    src: "hdfs_prometheus.yml.j2"
+    dest: "{{ prometheus_exporters_common_dist_dir }}/fsimage_exporter/config.yml"
+
+- name: Create startup script for our service
+  template:
+    src: hdfs_stats.j2
+    dest: "{{ prometheus_exporters_common_dist_dir }}/fsimage_exporter/hdfs_stats"
+    mode: a+x
+
+- name: update group and owner for files
+  file:
+    path: "{{ prometheus_exporters_common_dist_dir }}/fsimage_exporter"
+    state: directory
+    recurse: true
+    owner: "{{ prometheus_exporters_common_user }}"
+    group: "{{ prometheus_exporters_common_group }}"
+  changed_when: false
+
+- name: create symlink to the current release
+  file:
+    src: "{{ prometheus_exporters_common_dist_dir }}/fsimage_exporter"
+    path: "{{ prometheus_exporters_common_root_dir }}/fsimage_exporter"
+    state: link
+
+- name: Create systemd service unit
+  template:
+    src: prometheus-hdfs-stats-exporter.service.j2
+    dest: /etc/systemd/system/prometheus-hdfs-stats-exporter.service
+    owner: root
+    group: root
+    mode: 0644
+  when: service_mgr | default(ansible_service_mgr) == 'systemd'
+  notify:
+    - reenable hdfs stats exporter service
+    - restart hdfs stats exporter
+
+- meta: flush_handlers
+
+- name: Start the prometheus-hdfs-stats-exporter service
+  service:
+    name: prometheus-hdfs-stats-exporter
+    state: started

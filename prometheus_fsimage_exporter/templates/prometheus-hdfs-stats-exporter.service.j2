@@ -1,0 +1,19 @@
+[Unit]
+Description=Prometheus Hdfs Stats Exporter
+After=network.target
+
+[Service]
+# Currently running as root, hdfs user is an ipa user so we can't use them to read the disk
+Type=simple
+# User={{ prometheus_exporters_common_user }}
+User=root
+Group=root
+# Group={{ prometheus_exporters_common_group }}
+
+ExecStart={{ prometheus_exporters_common_root_dir }}/fsimage_exporter/hdfs_stats
+
+SyslogIdentifier=prometheus_hdfs_stats_exporter
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

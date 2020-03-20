@@ -1,0 +1,69 @@
+---
+
+- name: create our directory
+  file:
+    state: directory
+    path: "{{ prometheus_exporters_common_dist_dir }}/cloudwatch_exporter"
+
+- name: Set facts
+  set_fact:
+    package_name: "cloudwatch_exporter-{{ prometheus_cloudwatch_exporter_version }}-jar-with-dependencies.jar"
+
+- name: download our package
+  aws_s3:
+    bucket: "{{ prometheus_artifact_bucket }}"
+    object: "jar/{{ package_name }}"
+    dest: "{{ prometheus_exporters_common_dist_dir }}/cloudwatch_exporter/{{ package_name }}"
+    mode: get
+    overwrite: different
+
+- name: update group and owner for files
+  file:
+    path: "{{ prometheus_exporters_common_dist_dir }}/cloudwatch_exporter"
+    state: directory
+    recurse: true
+    owner: "{{ prometheus_exporters_common_user }}"
+    group: "{{ prometheus_exporters_common_group }}"
+  changed_when: false
+
+- name: create our config file
+  template:
+    src: "config.yml.j2"
+    dest: "{{ prometheus_exporters_common_dist_dir }}/cloudwatch_exporter/config.yml"
+    mode: 0644
+    owner: "{{ prometheus_exporters_common_user }}"
+    group: "{{ prometheus_exporters_common_group }}"
+
+- name: create startup script for our service
+  template:
+    src: stats.j2
+    dest: "{{ prometheus_exporters_common_dist_dir }}/cloudwatch_exporter/stats"
+    mode: 0755
+    owner: "{{ prometheus_exporters_common_user }}"
+    group: "{{ prometheus_exporters_common_group }}"
+
+- name: create symlink to the current release
+  file:
+    src: "{{ prometheus_exporters_common_dist_dir }}/cloudwatch_exporter/{{ package_name }}"
+    path: "{{ prometheus_exporters_common_root_dir }}/cloudwatch_exporter_current"
+    state: link
+    owner: "{{ prometheus_exporters_common_user }}"
+    group: "{{ prometheus_exporters_common_group }}"
+
+- name: configure the service config
+  template:
+    src: prometheus-cloudwatch-exporter.service.j2
+    dest: /etc/systemd/system/prometheus-cloudwatch-exporter.service
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart prometheus-cloudwatch-exporter
+
+- meta: flush_handlers
+
+- name: configure the service
+  systemd:
+    name: prometheus-cloudwatch-exporter
+    enabled: true
+    state: started

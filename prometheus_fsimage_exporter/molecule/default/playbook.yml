@@ -1,0 +1,101 @@
+---
+
+- name: Converge
+  hosts: all
+  become: true
+  become_flags: -E
+  vars:
+    project: demo
+    env: development
+
+  pre_tasks:
+    - name: Load defaults
+      include_vars:
+        dir: ../../../../group_vars/all/
+        ignore_unknown_extensions: true
+
+    - name: Unset proxy
+      set_fact:
+        outbound_proxy_host:
+        outbound_proxy_port:
+        outbound_proxy:
+
+    - name: Install python pre-reqs for ansible
+      pip:
+        name:
+          - boto3
+          - botocore
+          - awscli
+        state: present
+
+    - name: Install java
+      apt:
+        name: default-jdk
+        state: present
+
+    - name: Get our hadoop binary
+      get_url:
+        url: http://apache.mirrors.nublue.co.uk/hadoop/common/hadoop-3.2.1/hadoop-3.2.1.tar.gz
+        checksum: "sha512:d62709c3d7144fcaafc60e18d0fa03d7d477cc813e45526f3646030cd87dbf010aeccf3f4ce795b57b08d2884b3a55f91fe9d74ac144992d2dfe444a4bbf34ee"
+        dest: /tmp/hadoop-3.2.1.tar.gz
+
+    - name: Uncompress our archive
+      unarchive:
+        src: /tmp/hadoop-3.2.1.tar.gz
+        dest: /usr/local/
+        remote_src: true
+        creates: /usr/local/hadoop-3.2.1
+
+    - name: Symlink our directory
+      file:
+        src: /usr/local/hadoop-3.2.1
+        dest: /usr/local/hadoop
+        state: link
+
+    - name: Configure our JAVA_HOME
+      lineinfile:
+        path: /usr/local/hadoop/etc/hadoop/hadoop-env.sh
+        regexp: "^# export JAVA_HOME="
+        line: 'export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")'
+        backrefs: true
+
+    - name: Create our service file
+      copy:
+        dest: /etc/systemd/system/hadoop-minicluster.service
+        content: |
+          [Unit]
+          Description=Hadoop Mini Cluster
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=root
+          Group=root
+
+          ExecStart=/usr/local/hadoop/bin/mapred minicluster -rmport 10600 -jhsport 10800 -format
+
+          SyslogIdentifier=hadoop_minicluster
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+        owner: root
+        group: root
+        mode: 0644
+      tags:
+        - skip_ansible_lint
+
+    - name: Reload and enable our service
+      systemd:
+        name: "hadoop-minicluster"
+        daemon_reload: true
+        enabled: true
+        masked: false
+
+    - name: Start our service
+      service:
+        name: "hadoop-minicluster"
+        state: started
+
+  roles:
+    - { role: prometheus_fsimage_exporter, prometheus_fsimage_path: "/target/test/data/dfs/name-0-1/current" }

@@ -1,0 +1,7 @@
+---
+
+- name: restart prometheus-cloudwatch-exporter
+  systemd:
+    name: prometheus-cloudwatch-exporter
+    daemon_reload: true
+    state: restarted

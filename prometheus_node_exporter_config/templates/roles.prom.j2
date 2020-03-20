@@ -1,0 +1,3 @@
+{% for role in machine_roles -%}
+machine_role{role="{{ role }}"} 1
+{% endfor -%}

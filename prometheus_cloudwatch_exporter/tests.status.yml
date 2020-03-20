@@ -1,0 +1,14 @@
+---
+
+tests:
+  role: prometheus-cloudwatch-exporter
+  passing: True
+  coverage: True
+  vagrant: False
+  docker: True
+  idempontent: True
+  dependancies: ~
+  comments: |
+    Tests expect your aws keys to be exported as environment variables so they can be consumed inside the container
+  os:
+    - "ubuntu:xenial"

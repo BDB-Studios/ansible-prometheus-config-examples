@@ -1,0 +1,14 @@
+---
+
+tests:
+  role: prometheus_node_exporter_config
+  passing: true
+  coverage: true
+  docker: True
+  idempontent: False
+  dependancies: undergreen.prometheus-node-exporter
+  comments: |
+    undergreen.prometheus-node-exporter is not idempotent
+  os:
+    - "centos:7"
+    - "ubuntu:16.04"

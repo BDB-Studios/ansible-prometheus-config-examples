@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+sudo java -Xmx1024m -dsa -server -XX:+UseG1GC \
+  -jar {{ prometheus_exporters_common_root_dir }}/fsimage_exporter/fsimage-exporter-1.2.jar \
+  {{ fsimage_server_name }} {{ fsimage_server_port }} \
+  {{ prometheus_exporters_common_root_dir }}/fsimage_exporter/config.yml

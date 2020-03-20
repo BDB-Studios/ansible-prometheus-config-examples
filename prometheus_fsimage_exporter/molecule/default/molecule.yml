@@ -1,0 +1,49 @@
+---
+
+ansible:
+  config_file: ${PROJECT_ROOT}/ansible.cfg
+
+dependency:
+  name: galaxy
+
+driver:
+  name: docker
+
+lint:
+  name: yamllint
+
+platforms:
+  - name: prometheus_fsimage_exporter
+    image: jrei/systemd-ubuntu:16.04
+    override_command: true
+    command: /sbin/init
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    env:
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      AWS_DEFAULT_REGION: eu-west-1
+    exposed_ports:
+      - 10600/udp
+      - 10600/tcp
+      - 10800/udp
+      - 10800/tcp
+    published_ports:
+      - 0.0.0.0:10600:10600/udp
+      - 0.0.0.0:10600:10600/tcp
+      - 0.0.0.0:10800:10800/udp
+      - 0.0.0.0:10800:10800/tcp
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_LIBRARY: ${PROJECT_ROOT}/library/
+    ANSIBLE_FILTER_PLUGINS: ${PROJECT_ROOT}/filter_plugins/
+  lint:
+    name: ansible-lint
+
+verifier:
+  name: testinfra
+  lint:
+    name: flake8

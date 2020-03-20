@@ -1,0 +1,22 @@
+---
+
+- name: Prepare
+  hosts: all
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Install python for Ansible
+      raw: >
+        test -e /usr/bin/python ||
+        (apt -y update && apt install -y python-minimal)
+      changed_when: false
+
+    - name: Install pip for environment
+      apt:
+        name:
+          - python-apt
+          - python-pip
+          - openjdk-8-jre-headless
+          - curl
+        state: present

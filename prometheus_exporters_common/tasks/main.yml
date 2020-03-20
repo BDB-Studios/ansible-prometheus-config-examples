@@ -1,0 +1,27 @@
+---
+
+- name: "Create {{ prometheus_exporters_common_group }} system group"
+  group:
+    name: "{{ prometheus_exporters_common_group }}"
+    system: true
+    state: present
+
+- name: "Create {{ prometheus_exporters_common_user }} system user"
+  user:
+    name: "{{ prometheus_exporters_common_user }}"
+    system: true
+    shell: "/sbin/nologin"
+    group: "{{ prometheus_exporters_common_group }}"
+    home: "{{ prometheus_db_dir }}"
+  ignore_errors: true
+
+- name: "Ensure our {{ item }} directory exists"
+  file:
+    state: directory
+    path: "{{ item }}"
+    owner: "{{ prometheus_exporters_common_user }}"
+    group: "{{ prometheus_exporters_common_group }}"
+  loop:
+    - "{{ prometheus_exporters_common_dist_dir }}"
+    - "{{ prometheus_exporters_common_log_dir }}"
+    - "{{ prometheus_exporters_common_conf_dir }}"

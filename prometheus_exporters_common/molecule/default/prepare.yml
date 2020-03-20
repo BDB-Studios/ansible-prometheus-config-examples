@@ -1,0 +1,30 @@
+---
+
+- name: Prepare
+  hosts: all
+  gather_facts: true
+  become: true
+
+  tasks:
+    - block:
+        - name: Install packages for environment
+          apt:
+            name:
+              - python-pip
+              - curl
+            state: present
+      when: ansible_os_family == 'Debian'
+
+    - block:
+        - name: Install epel
+          yum:
+            name: epel-release
+            state: present
+
+        - name: Install packages for environment
+          yum:
+            name:
+              - python2-pip
+              - curl
+            state: present
+      when: ansible_os_family == 'RedHat'

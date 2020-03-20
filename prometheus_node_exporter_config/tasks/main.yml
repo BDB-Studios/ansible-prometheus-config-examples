@@ -1,0 +1,89 @@
+---
+
+- name: Stop the prometheus_node_exporter service
+  service:
+    name: "{{ item }}"
+    state: stopped
+  loop:
+    - prometheus-node-exporter
+    - node_exporter
+  ignore_errors: True
+
+- name: Remove our node_exporter service if it exists in conflict
+  service:
+    name: node_exporter
+    state: stopped
+    enabled: False
+  ignore_errors: True
+
+- name: update group and owner for files
+  file:
+    path: "{{ prometheus_exporters_common_dist_dir }}/node_exporter-{{ prometheus_node_exporter_version }}.linux-amd64"
+    state: directory
+    recurse: yes
+    owner: "{{ prometheus_exporters_common_user }}"
+    group: "{{ prometheus_exporters_common_group }}"
+  changed_when: false
+
+- name: Ensure we have a text exporter directory for the prometheus user
+  file:
+    state: directory
+    path: "{{ prometheus_exporters_textfile_collector_dir }}"
+    owner: "{{ prometheus_exporters_common_user }}"
+    group: "{{ prometheus_exporters_common_group }}"
+
+- name: Create our template file
+  template:
+    src: "{{ role_path }}/templates/roles.prom.j2"
+    dest: "{{ prometheus_exporters_textfile_collector_dir }}/roles.prom"
+    owner: "{{ prometheus_exporters_common_user }}"
+    group: "{{ prometheus_exporters_common_group }}"
+  vars:
+    - machine_roles: "{{ prometheus_machine_roles + [ cloudera_role, env_type, node_name, project ] }}"
+
+- name: Update systemd service unit
+  template:
+    src: etc/systemd/system/prometheus-node-exporter.service.j2
+    dest: /etc/systemd/system/prometheus-node-exporter.service
+    owner: root
+    group: root
+    mode: 0644
+  when: service_mgr | default(ansible_service_mgr) == 'systemd'
+  notify:
+    - reenable node exporter service
+    - restart node exporter
+
+- name: Looking which version of upstart is install
+  command: initctl version
+  when: service_mgr | default(ansible_service_mgr) == 'upstart'
+  register: upstart_version
+
+- name: Update init service unit
+  template:
+    src: etc/init/prometheus-node-exporter.conf.j2
+    dest: /etc/init/prometheus-node-exporter.conf
+    owner: root
+    group: root
+    mode: 0644
+  when: service_mgr | default(ansible_service_mgr) == 'upstart'
+  notify:
+    - reinit node exporter
+    - restart node exporter
+
+- name: Update sysvinit service unit
+  template:
+    src: etc/init.d/prometheus-node-exporter.j2
+    dest: /etc/init.d/prometheus-node-exporter
+    owner: root
+    group: root
+    mode: 0755
+  when: service_mgr | default(ansible_service_mgr) in [ 'sysvinit', 'service' ]
+  notify:
+    - restart node exporter
+
+- meta: flush_handlers
+
+- name: Start the prometheus_node_exporter service
+  service:
+    name: prometheus-node-exporter
+    state: started

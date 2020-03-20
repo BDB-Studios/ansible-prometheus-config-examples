@@ -1,0 +1,25 @@
+---
+# defaults file for prometheus_jmx
+
+prometheus_jmx_version: 0.12.1
+prometheus_jmx_exporter_port: 9110
+
+prometheus_jmx:
+  exporter_port: 19000
+  whitelist:
+    namenode:
+      - "Hadoop:service=NameNode,name=*"
+      - "Hadoop:service=NameNode,name=MetricsSystem,sub=*"
+    datanode:
+      - "Hadoop:service=DataNode,name=*"
+      - "Hadoop:service=DataNode,name=MetricsSystem,sub=*"
+  blacklist:
+    namenode:
+      - 'Hadoop:service=NameNode,name=RetryCache.NameNodeRetryCache'
+      - 'Hadoop:service=NameNode,name=RpcActivity*'
+      - 'Hadoop:service=NameNode,name=RpcDetailedActivity*'
+      - 'Hadoop:service=NameNode,name=UgiMetrics'
+    datanode:
+      - 'Hadoop:service=DataNode,name=RpcActivity*'
+      - 'Hadoop:service=DataNode,name=RpcDetailedActivity*'
+      - 'Hadoop:service=DataNode,name=UgiMetrics'

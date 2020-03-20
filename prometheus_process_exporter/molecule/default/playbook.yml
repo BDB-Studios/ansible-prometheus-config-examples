@@ -1,0 +1,31 @@
+---
+
+- name: Converge
+  hosts: all
+  become: true
+  become_flags: -E
+  vars:
+    project: demo
+    env: development
+
+  pre_tasks:
+    - name: Load defaults
+      include_vars:
+        file: ../../../../group_vars/all/prometheus.yml
+
+    - name: Unset proxy
+      set_fact:
+        outbound_proxy_host:
+        outbound_proxy_port:
+        outbound_proxy:
+
+    - name: Install python pre-reqs for ansible
+      pip:
+        name:
+          - boto3
+          - botocore
+          - awscli
+        state: present
+
+  roles:
+    - { role: prometheus_process_exporter }

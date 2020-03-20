@@ -1,0 +1,45 @@
+---
+
+- block:
+    - name: Get our binary
+      aws_s3:
+        bucket: "{{ project }}-repository"
+        mode: get
+        object: "/deb/process-exporter_0.5.0_linux_amd64.deb"
+        dest: "/tmp/process-exporter_0.5.0_linux_amd64.deb"
+        overwrite: different
+      environment:
+        http_proxy: ""
+        https_proxy: ""
+
+    - name: Install our binary
+      apt:
+        deb: /tmp/process-exporter_0.5.0_linux_amd64.deb
+        state: present
+
+  when: ansible_os_family == 'Debian'
+
+- block:
+    - name: Get our binary
+      aws_s3:
+        bucket: "{{ project }}-repository"
+        mode: get
+        object: "/rpm/process-exporter_0.5.0_linux_amd64.rpm"
+        dest: "/tmp/process-exporter_0.5.0_linux_amd64.rpm"
+        overwrite: different
+      environment:
+        http_proxy: ""
+        https_proxy: ""
+
+    - name: Install our binary
+      yum:
+        name: /tmp/process-exporter_0.5.0_linux_amd64.rpm
+        state: present
+
+  when: ansible_os_family == 'RedHat'
+
+- name: Start our service
+  service:
+    name: process-exporter
+    enabled: True
+    state: started

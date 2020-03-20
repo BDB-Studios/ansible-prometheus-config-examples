@@ -1,0 +1,7 @@
+---
+
+- name: restart prometheus-jmx-exporter
+  systemd:
+    name: "prometheus-jmx-exporter"
+    daemon_reload: true
+    state: restarted
